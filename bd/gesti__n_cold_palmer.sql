@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.1
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 19-09-2025 a las 17:15:48
--- Versión del servidor: 10.4.22-MariaDB
--- Versión de PHP: 8.1.2
+-- Tiempo de generación: 29-09-2025 a las 15:30:07
+-- Versión del servidor: 10.4.32-MariaDB
+-- Versión de PHP: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -30,13 +30,29 @@ SET time_zone = "+00:00";
 CREATE TABLE `comanda` (
   `id_comanda` int(11) NOT NULL,
   `fecha_pedido` date NOT NULL,
-  `metodo_pago` varchar(50) DEFAULT NULL,
   `gusto1` int(11) DEFAULT NULL,
   `gusto2` int(11) DEFAULT NULL,
   `gusto3` int(11) DEFAULT NULL,
   `gusto4` int(11) DEFAULT NULL,
-  `id_envase` int(11) DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `id_envase` int(11) DEFAULT NULL,
+  `id_metodo_pago` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `comanda`
+--
+
+INSERT INTO `comanda` (`id_comanda`, `fecha_pedido`, `gusto1`, `gusto2`, `gusto3`, `gusto4`, `id_envase`, `id_metodo_pago`) VALUES
+(1, '2025-09-01', 1, 2, NULL, NULL, 1, 1),
+(2, '2025-09-02', 3, 4, 5, NULL, 2, 2),
+(3, '2025-09-03', 6, NULL, NULL, NULL, 4, 3),
+(4, '2025-09-04', 2, 7, 1, NULL, 7, 4),
+(5, '2025-09-05', 8, 9, 10, NULL, 8, 5),
+(6, '2025-09-06', 5, NULL, NULL, NULL, 3, 6),
+(7, '2025-09-07', 4, 2, 6, NULL, 9, 7),
+(8, '2025-09-08', 1, 3, NULL, NULL, 10, 8),
+(9, '2025-09-09', 7, 8, 5, 9, 6, 9),
+(10, '2025-09-10', 10, NULL, NULL, NULL, 5, 10);
 
 --
 -- Disparadores `comanda`
@@ -104,6 +120,69 @@ CREATE TRIGGER `check_gustos_disponibles` BEFORE INSERT ON `comanda` FOR EACH RO
 END
 $$
 DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `restar_stock_comanda` AFTER INSERT ON `comanda` FOR EACH ROW BEGIN
+    -- Restar stock del envase
+    IF NEW.id_envase IS NOT NULL THEN
+        UPDATE stock_envases
+        SET cantidad = cantidad - 1
+        WHERE id_envase = NEW.id_envase;
+    END IF;
+
+    -- Restar stock de gustos
+    IF NEW.gusto1 IS NOT NULL THEN
+        UPDATE stock_gustos
+        SET cantidad = cantidad - 1
+        WHERE id_gusto = NEW.gusto1;
+    END IF;
+
+    IF NEW.gusto2 IS NOT NULL THEN
+        UPDATE stock_gustos
+        SET cantidad = cantidad - 1
+        WHERE id_gusto = NEW.gusto2;
+    END IF;
+
+    IF NEW.gusto3 IS NOT NULL THEN
+        UPDATE stock_gustos
+        SET cantidad = cantidad - 1
+        WHERE id_gusto = NEW.gusto3;
+    END IF;
+
+    IF NEW.gusto4 IS NOT NULL THEN
+        UPDATE stock_gustos
+        SET cantidad = cantidad - 1
+        WHERE id_gusto = NEW.gusto4;
+    END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `metodo_pago`
+--
+
+CREATE TABLE `metodo_pago` (
+  `id_metodo_pago` int(11) NOT NULL,
+  `nombre_metodo_pago` varchar(50) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `metodo_pago`
+--
+
+INSERT INTO `metodo_pago` (`id_metodo_pago`, `nombre_metodo_pago`) VALUES
+(1, 'Efectivo'),
+(2, 'Tarjeta'),
+(3, 'MercadoPago'),
+(4, 'Transferencia'),
+(5, 'Débito'),
+(6, 'Crédito'),
+(7, 'Cheque'),
+(8, 'Vale'),
+(9, 'Criptomoneda'),
+(10, 'QR');
 
 -- --------------------------------------------------------
 
@@ -112,9 +191,26 @@ DELIMITER ;
 --
 
 CREATE TABLE `producto_faltante` (
-  `id_gusto` int(11) NOT NULL,
-  `id_envase` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+  `id_gusto` int(11) DEFAULT NULL,
+  `id_envase` int(11) DEFAULT NULL,
+  `id_faltante` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `producto_faltante`
+--
+
+INSERT INTO `producto_faltante` (`id_gusto`, `id_envase`, `id_faltante`) VALUES
+(1, NULL, 1),
+(3, NULL, 2),
+(7, NULL, 3),
+(5, NULL, 4),
+(9, NULL, 5),
+(NULL, 2, 6),
+(NULL, 6, 7),
+(NULL, 8, 8),
+(NULL, 10, 9),
+(NULL, 4, 10);
 
 -- --------------------------------------------------------
 
@@ -126,7 +222,23 @@ CREATE TABLE `recibo` (
   `id_recibo` int(11) NOT NULL,
   `id_comanda` int(11) NOT NULL,
   `precio` decimal(10,2) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `recibo`
+--
+
+INSERT INTO `recibo` (`id_recibo`, `id_comanda`, `precio`) VALUES
+(1, 1, 1000.00),
+(2, 2, 1800.00),
+(3, 3, 800.00),
+(4, 4, 2500.00),
+(5, 5, 4200.00),
+(6, 6, 1200.00),
+(7, 7, 3500.00),
+(8, 8, 2000.00),
+(9, 9, 5000.00),
+(10, 10, 1500.00);
 
 -- --------------------------------------------------------
 
@@ -139,7 +251,23 @@ CREATE TABLE `stock_envases` (
   `nombre` varchar(100) NOT NULL,
   `precio` decimal(10,2) NOT NULL,
   `cantidad` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `stock_envases`
+--
+
+INSERT INTO `stock_envases` (`id_envase`, `nombre`, `precio`, `cantidad`) VALUES
+(1, 'Vaso Chico', 500.00, 49),
+(2, 'Vaso Mediano', 800.00, 39),
+(3, 'Vaso Grande', 1200.00, 34),
+(4, 'Cucurucho Simple', 300.00, 59),
+(5, 'Cucurucho Doble', 450.00, 54),
+(6, 'Cucurucho Bañado', 600.00, 24),
+(7, 'Pote 1/4 Kg', 1500.00, 19),
+(8, 'Pote 1/2 Kg', 2800.00, 17),
+(9, 'Pote 1 Kg', 5000.00, 11),
+(10, 'Copa Especial', 2000.00, 14);
 
 -- --------------------------------------------------------
 
@@ -151,7 +279,23 @@ CREATE TABLE `stock_gustos` (
   `id_gusto` int(11) NOT NULL,
   `nombre` varchar(100) NOT NULL,
   `cantidad` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Volcado de datos para la tabla `stock_gustos`
+--
+
+INSERT INTO `stock_gustos` (`id_gusto`, `nombre`, `cantidad`) VALUES
+(1, 'Chocolate', 22),
+(2, 'Vainilla', 27),
+(3, 'Frutilla', 18),
+(4, 'Dulce de Leche', 13),
+(5, 'Menta Granizada', 15),
+(6, 'Cookies & Cream', 20),
+(7, 'Banana Split', 8),
+(8, 'Limón', 10),
+(9, 'Crema Americana', 26),
+(10, 'Tramontana', 12);
 
 --
 -- Índices para tablas volcadas
@@ -166,14 +310,22 @@ ALTER TABLE `comanda`
   ADD KEY `gusto2` (`gusto2`),
   ADD KEY `gusto3` (`gusto3`),
   ADD KEY `gusto4` (`gusto4`),
-  ADD KEY `id_envase` (`id_envase`);
+  ADD KEY `id_envase` (`id_envase`),
+  ADD KEY `fk_comanda_metodo_pago` (`id_metodo_pago`);
+
+--
+-- Indices de la tabla `metodo_pago`
+--
+ALTER TABLE `metodo_pago`
+  ADD PRIMARY KEY (`id_metodo_pago`);
 
 --
 -- Indices de la tabla `producto_faltante`
 --
 ALTER TABLE `producto_faltante`
-  ADD PRIMARY KEY (`id_gusto`,`id_envase`),
-  ADD KEY `id_envase` (`id_envase`);
+  ADD PRIMARY KEY (`id_faltante`),
+  ADD KEY `producto_faltante_ibfk_1` (`id_gusto`),
+  ADD KEY `producto_faltante_ibfk_2` (`id_envase`);
 
 --
 -- Indices de la tabla `recibo`
@@ -195,6 +347,16 @@ ALTER TABLE `stock_gustos`
   ADD PRIMARY KEY (`id_gusto`);
 
 --
+-- AUTO_INCREMENT de las tablas volcadas
+--
+
+--
+-- AUTO_INCREMENT de la tabla `producto_faltante`
+--
+ALTER TABLE `producto_faltante`
+  MODIFY `id_faltante` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
 -- Restricciones para tablas volcadas
 --
 
@@ -206,7 +368,8 @@ ALTER TABLE `comanda`
   ADD CONSTRAINT `comanda_ibfk_2` FOREIGN KEY (`gusto2`) REFERENCES `stock_gustos` (`id_gusto`),
   ADD CONSTRAINT `comanda_ibfk_3` FOREIGN KEY (`gusto3`) REFERENCES `stock_gustos` (`id_gusto`),
   ADD CONSTRAINT `comanda_ibfk_4` FOREIGN KEY (`gusto4`) REFERENCES `stock_gustos` (`id_gusto`),
-  ADD CONSTRAINT `comanda_ibfk_5` FOREIGN KEY (`id_envase`) REFERENCES `stock_envases` (`id_envase`);
+  ADD CONSTRAINT `comanda_ibfk_5` FOREIGN KEY (`id_envase`) REFERENCES `stock_envases` (`id_envase`),
+  ADD CONSTRAINT `fk_comanda_metodo_pago` FOREIGN KEY (`id_metodo_pago`) REFERENCES `metodo_pago` (`id_metodo_pago`);
 
 --
 -- Filtros para la tabla `producto_faltante`
